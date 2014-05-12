@@ -14,3 +14,20 @@ versa.
 The default HTML generator requires Twisted.
 
 There are some more notes in the doc/ subdirectory.
+
+
+Sphinx Integration
+------------------
+
+It can link to external API documentation using Sphinx objects inventory using
+the following cumulative configuration option::
+
+    --intersphinx=sphinx:http://sphinx.org/objects.inv
+
+All links starting with `sphinx`, (ex: `sphinx.sphinx.addnodes.desc_optional`)
+are resolved based on Sphinx index from http://sphinx.org/objects.inv.
+
+It assumes that an inventory contains references for a single root package.
+
+You can add multiple intersphinx options to configure multiple external
+project or inventories containing multiple root packages.

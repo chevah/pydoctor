@@ -1,4 +1,11 @@
+"""
+Unit tests for model.
+"""
 from pydoctor import model
+from pydoctor.driver import parse_args
+from pydoctor.sphinx import SphinxInventory
+import zlib
+
 
 class FakeOptions(object):
     """
@@ -41,3 +48,81 @@ def test_setSourceHrefOption():
 
     expected = viewSourceBase + moduleRelativePart
     assert mod.sourceHref == expected
+
+
+def test_initialization_default():
+    """
+    When initialized without options, will use default options and default
+    verbosity.
+    """
+    sut = model.System()
+
+    assert None is sut.options.projectname
+    assert 3 == sut.options.verbosity
+
+
+def test_initialization_options():
+    """
+    Can be initialized with options.
+    """
+    options = object()
+
+    sut = model.System(options=options)
+
+    assert options is sut.options
+
+
+def test_fetchIntersphinxInventories_empty():
+    """
+    Convert option to empty dict.
+    """
+    options, _ = parse_args([])
+    options.intersphinx = []
+    sut = model.System(options=options)
+
+    sut.fetchIntersphinxInventories()
+
+    assert {} == sut.intersphinx
+
+
+def test_fetchIntersphinxInventories_content():
+    """
+    Download and parse intersphinx inventories for each configured
+    intersphix.
+    """
+    options, _ = parse_args([])
+    options.intersphinx = [
+        'sphinx:http://sphinx/objects.inv',
+        'twisted:file:///twisted/index.inv',
+        ]
+    url_content = {
+        'http://sphinx/objects.inv': zlib.compress(
+            'sphinx.module py:module -1 sp.html -'),
+        'file:///twisted/index.inv': zlib.compress(
+            'twisted.package py:module -1 tm.html -'),
+        }
+    sut = model.System(options=options)
+    log = []
+    sut.msg = lambda part, msg: log.append((part, msg))
+
+    def patchSphinxInventory(name):
+        """
+        Patch url getter to avoid touching the network.
+        """
+        inventory = SphinxInventory(logger=sut.msg, project_name=name)
+        inventory._getURL = lambda url: url_content[url]
+        return inventory
+    sut._makeSphinxInventory = patchSphinxInventory
+
+    sut.fetchIntersphinxInventories()
+
+    assert 2 == len(sut.intersphinx)
+    assert [] == log
+    assert (
+        'http://sphinx/sp.html' ==
+        sut.intersphinx['sphinx'].getLink('sphinx.module')
+        )
+    assert (
+        'file:///twisted/tm.html' ==
+        sut.intersphinx['twisted'].getLink('twisted.package')
+        )

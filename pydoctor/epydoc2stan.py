@@ -113,6 +113,18 @@ class _EpydocLinker(object):
                 thresh=-1)
         return None
 
+    def look_for_intersphinx(self, name):
+        """
+        Return link for `name` based on intersphinx inventory.
+
+        Return None if link is not found.
+        """
+        base = name.split('.', 1)[0]
+        inventory = self.obj.system.intersphinx.get(base, None)
+        if not inventory:
+            return None
+        return inventory.getLink(name)
+
     def translate_identifier_xref(self, fullID, prettyID):
         """Figure out what ``L{fullID}`` should link to.
 
@@ -163,6 +175,11 @@ class _EpydocLinker(object):
             self.obj.system.objectsOfType(model.Package)))
         if target is not None:
             return self._objLink(target, prettyID)
+
+        target = self.look_for_intersphinx(fullID)
+        if target:
+            return '<a href="%s"><code>%s</code></a>'%(target, prettyID)
+
         self.obj.system.msg(
             "translate_identifier_xref", "%s:%s invalid ref to %s" % (
                 self.obj.fullName(), self.obj.linenumber, fullID),

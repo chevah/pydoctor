@@ -14,6 +14,8 @@ import sys
 import types
 import __builtin__
 
+from pydoctor.sphinx import SphinxInventory
+
 # originally when I started to write pydoctor I had this idea of a big
 # tree of Documentables arranged in an almost arbitrary tree.
 #
@@ -347,7 +349,7 @@ class System(object):
     #defaultBuilder = astbuilder.ASTBuilder
     sourcebase = None
 
-    def __init__(self):
+    def __init__(self, options=None):
         self.allobjects = {}
         self.orderedallobjects = []
         self.rootobjects = []
@@ -356,9 +358,14 @@ class System(object):
         self.moresystems = []
         self.subsystems = []
         self.urlprefix = ''
-        from pydoctor.driver import parse_args
-        self.options, _ = parse_args([])
-        self.options.verbosity = 3
+
+        if options:
+            self.options = options
+        else:
+            from pydoctor.driver import parse_args
+            self.options, _ = parse_args([])
+            self.options.verbosity = 3
+
         self.abbrevmapping = {}
         self.guessedprojectname = 'my project'
         self.epytextproblems = [] # fullNames of objects that failed to epytext properly
@@ -369,6 +376,7 @@ class System(object):
         self.module_count = 0
         self.processing_modules = []
         self.buildtime = datetime.datetime.now()
+        self.intersphinx = {}
 
     def verbosity(self, section=None):
         if isinstance(section, str):
@@ -702,3 +710,31 @@ class System(object):
         while self.unprocessed_modules:
             mod = iter(self.unprocessed_modules).next()
             self.processModule(mod)
+
+
+    def fetchIntersphinxInventories(self):
+        """
+        Download and parse intersphinx inventories based on configuration.
+        """
+        self.intersphinx = {}
+
+        for option in self.options.intersphinx:
+            parts = option.split(':', 1)
+            if len(parts) != 2:
+                self.msg(
+                    'sphinx',
+                    'invalid format for intersphinx %s' % (option,)
+                    )
+                continue
+            target_name = parts[0]
+            target_url = parts[1]
+            inventory = self._makeSphinxInventory(target_name)
+            inventory.load(target_url)
+            self.intersphinx[target_name] = inventory
+
+
+    def _makeSphinxInventory(self, name):
+        """
+        Helper to instantiate sphinx inventories.
+        """
+        return SphinxInventory(logger=self.msg, project_name=name)

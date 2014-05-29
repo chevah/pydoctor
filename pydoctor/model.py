@@ -367,7 +367,7 @@ class System(object):
             self.options.verbosity = 3
 
         self.abbrevmapping = {}
-        self.guessedprojectname = 'my project'
+        self.projectname = 'my project'
         self.epytextproblems = [] # fullNames of objects that failed to epytext properly
         self.verboselevel = 0
         self.needsnl = False

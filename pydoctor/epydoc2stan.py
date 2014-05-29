@@ -119,11 +119,7 @@ class _EpydocLinker(object):
 
         Return None if link is not found.
         """
-        base = name.split('.', 1)[0]
-        inventory = self.obj.system.intersphinx.get(base, None)
-        if not inventory:
-            return None
-        return inventory.getLink(name)
+        return self.obj.system.intersphinx.getLink(name)
 
     def translate_identifier_xref(self, fullID, prettyID):
         """Figure out what ``L{fullID}`` should link to.

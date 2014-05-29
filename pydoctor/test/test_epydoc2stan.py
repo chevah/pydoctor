@@ -69,25 +69,11 @@ def test_summary():
     assert u'No summary' == get_summary('no_summary')
 
 
-def test_EpydocLinker_look_for_intersphinx_no_base():
-    """
-    Return None if no inventory exists for link.
-    """
-    system = model.System()
-    target = model.Module(system, 'ignore-name', 'ignore-docstring')
-    sut = epydoc2stan._EpydocLinker(target)
-
-    result = sut.look_for_intersphinx('another.module')
-
-    assert None is result
-
-
 def test_EpydocLinker_look_for_intersphinx_no_link():
     """
     Return None if inventory had no link for our markup.
     """
     system = model.System()
-    system.intersphinx['base'] = SphinxInventory(system.msg, 'some-project')
     target = model.Module(system, 'ignore-name', 'ignore-docstring')
     sut = epydoc2stan._EpydocLinker(target)
 
@@ -102,9 +88,8 @@ def test_EpydocLinker_look_for_intersphinx_hit():
     """
     system = model.System()
     inventory = SphinxInventory(system.msg, 'some-project')
-    inventory._base_url = 'http://tm.tld'
-    inventory._links['base.module.other'] = 'some.html'
-    system.intersphinx['base'] = inventory
+    inventory._links['base.module.other'] = ('http://tm.tld', 'some.html')
+    system.intersphinx = inventory
     target = model.Module(system, 'ignore-name', 'ignore-docstring')
     sut = epydoc2stan._EpydocLinker(target)
 
@@ -119,9 +104,8 @@ def test_EpydocLinker_translate_identifier_xref_intersphinx():
     """
     system = model.System()
     inventory = SphinxInventory(system.msg, 'some-project')
-    inventory._base_url = 'http://tm.tld'
-    inventory._links['base.module.other'] = 'some.html'
-    system.intersphinx['base'] = inventory
+    inventory._links['base.module.other'] = ('http://tm.tld', 'some.html')
+    system.intersphinx = inventory
     target = model.Module(system, 'ignore-name', 'ignore-docstring')
     sut = epydoc2stan._EpydocLinker(target)
 

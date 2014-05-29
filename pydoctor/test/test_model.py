@@ -82,7 +82,9 @@ def test_fetchIntersphinxInventories_empty():
 
     sut.fetchIntersphinxInventories()
 
-    assert {} == sut.intersphinx
+    # Use internal state since I don't know how else to
+    # check for SphinxInventory state.
+    assert {} == sut.intersphinx._links
 
 
 def test_fetchIntersphinxInventories_content():
@@ -92,8 +94,8 @@ def test_fetchIntersphinxInventories_content():
     """
     options, _ = parse_args([])
     options.intersphinx = [
-        'sphinx:http://sphinx/objects.inv',
-        'twisted:file:///twisted/index.inv',
+        'http://sphinx/objects.inv',
+        'file:///twisted/index.inv',
         ]
     url_content = {
         'http://sphinx/objects.inv': zlib.compress(
@@ -104,25 +106,17 @@ def test_fetchIntersphinxInventories_content():
     sut = model.System(options=options)
     log = []
     sut.msg = lambda part, msg: log.append((part, msg))
-
-    def patchSphinxInventory(name):
-        """
-        Patch url getter to avoid touching the network.
-        """
-        inventory = SphinxInventory(logger=sut.msg, project_name=name)
-        inventory._getURL = lambda url: url_content[url]
-        return inventory
-    sut._makeSphinxInventory = patchSphinxInventory
+    # Patch url getter to avoid touching the network.
+    sut.intersphinx._getURL = lambda url: url_content[url]
 
     sut.fetchIntersphinxInventories()
 
-    assert 2 == len(sut.intersphinx)
     assert [] == log
     assert (
         'http://sphinx/sp.html' ==
-        sut.intersphinx['sphinx'].getLink('sphinx.module')
+        sut.intersphinx.getLink('sphinx.module')
         )
     assert (
         'file:///twisted/tm.html' ==
-        sut.intersphinx['twisted'].getLink('twisted.package')
+        sut.intersphinx.getLink('twisted.package')
         )

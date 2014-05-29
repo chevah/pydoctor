@@ -7,8 +7,6 @@ import os
 import urllib2
 import zlib
 
-from pydoctor import model
-
 
 class SphinxInventory(object):
     """
@@ -20,7 +18,6 @@ class SphinxInventory(object):
     def __init__(self, logger, project_name):
         self.project_name = project_name
         self.msg = logger
-        self._base_url = ''
         self._links = {}
 
     def generate(self, subjects, basepath):
@@ -75,6 +72,9 @@ class SphinxInventory(object):
         Priority is always: -1
         Display name is always: -
         """
+        # Avoid circular import.
+        from pydoctor import model
+
         full_name = obj.fullName()
 
         if obj.documentation_location == model.DocLocation.OWN_PAGE:
@@ -100,9 +100,9 @@ class SphinxInventory(object):
 
         return '%s py:%s -1 %s %s\n' % (full_name, domainname, url, display)
 
-    def load(self, url):
+    def update(self, url):
         """
-        Load inventory from URL.
+        Update inventory from URL.
         """
         parts = url.rsplit('/', 1)
         if len(parts) != 2:
@@ -110,7 +110,7 @@ class SphinxInventory(object):
                 'sphinx', 'Failed to get remote base url for %s' % (url,))
             return
 
-        self._base_url = parts[0]
+        base_url = parts[0]
 
         data = self._getURL(url)
 
@@ -119,8 +119,8 @@ class SphinxInventory(object):
                 'sphinx', 'Failed to get object inventory from %s' % (url, ))
             return
 
-        payload = self._getPayload(data)
-        self._links = self._parseInventory(payload)
+        payload = self._getPayload(base_url, data)
+        self._links.update(self._parseInventory(base_url, payload))
 
     def _getURL(self, url):
         """
@@ -134,7 +134,7 @@ class SphinxInventory(object):
         except:
             return None
 
-    def _getPayload(self, data):
+    def _getPayload(self, base_url, data):
         """
         Parse inventory and return clear text payload without comments.
         """
@@ -153,13 +153,12 @@ class SphinxInventory(object):
         except:
             self.msg(
                 'sphinx',
-                'Failed to uncompress inventory from %s' % (self._base_url, ),
-                )
+                'Failed to uncompress inventory from %s' % (base_url,))
             return ''
 
-    def _parseInventory(self, payload):
+    def _parseInventory(self, base_url, payload):
         """
-        Parse clear text payload and load it into internal links database.
+        Parse clear text payload and return a dict with module to link mapping.
         """
         result = {}
         for line in payload.splitlines():
@@ -167,17 +166,17 @@ class SphinxInventory(object):
             if len(parts) != 5:
                 self.msg(
                     'sphinx',
-                    'Failed to parse line "%s" for %s' % (line, self._base_url),
+                    'Failed to parse line "%s" for %s' % (line, base_url),
                     )
                 continue
-            result[parts[0]] = parts[3]
+            result[parts[0]] = (base_url, parts[3])
         return result
 
     def getLink(self, name):
         """
         Return link for `name` or None if no link is found.
         """
-        relative_link = self._links.get(name, None)
+        base_url, relative_link = self._links.get(name, (None, None))
         if not relative_link:
             return None
 
@@ -185,4 +184,4 @@ class SphinxInventory(object):
         if relative_link.endswith('$'):
             relative_link = relative_link[:-1] + name
 
-        return '%s/%s' % (self._base_url, relative_link)
+        return '%s/%s' % (base_url, relative_link)

@@ -189,10 +189,10 @@ def getparser():
 
     parser.add_option(
         '--intersphinx', action='append', dest='intersphinx',
-        metavar='PACKAGE:URL_TO_OBJECTS.INV', default=[],
+        metavar='URL_TO_OBJECTS.INV', default=[],
         help=(
-            "Use Sphinx objects inventory for link generation for members"
-            "from PACKAGE. Can be repeated."))
+            "Use Sphinx objects inventory to generate links to external"
+            "documetation. Can be repeated."))
 
     return parser
 
